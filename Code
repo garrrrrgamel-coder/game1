@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Неоновый Вихрь: Цепная Реакция</title>
+    <!-- Подключение SDK Яндекс Игр -->
+    <script src="https://yandex.ru/games/sdk/v2"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        body {
+            background-color: #0b0c10;
+            color: #c5c6c7;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 500px;
+            max-height: 850px;
+            background: #1f2833;
+            box-shadow: 0 0 20px rgba(102, 252, 241, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+        #ui-top {
+            height: 60px;
+            padding: 0 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0b0c10;
+            border-bottom: 2px solid #45a29e;
+            z-index: 10;
+        }
+        .stat-box {
+            font-size: 16px;
+            font-weight: bold;
+            color: #66fcf1;
+        }
+        .stat-box span {
+            color: #fff;
+        }
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            background: #11141a;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        #ui-bottom {
+            height: 110px;
+            background: #0b0c10;
+            border-top: 2px solid #45a29e;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 5px;
+            z-index: 10;
+        }
+        .upgrade-btn {
+            background: linear-gradient(135deg, #1f2833 0%, #0b0c10 100%);
+            border: 1px solid #45a29e;
+            border-radius: 8px;
+            color: #fff;
+            padding: 8px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            text-align: center;
+            width: 30%;
+            transition: all 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .upgrade-btn:active {
+            transform: scale(0.95);
+            border-color: #66fcf1;
+        }
+        .upgrade-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #333;
+        }
+        .btn-title {
+            font-weight: bold;
+            color: #66fcf1;
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+        .btn-cost {
+            color: #ffbd59;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+        #ad-notice {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: #66fcf1;
+            padding: 20px;
+            border: 2px solid #66fcf1;
+            border-radius: 10px;
+            font-weight: bold;
+            text-align: center;
+            display: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="ui-top">
+        <div class="stat-box">МОНЕТЫ: <span id="gold-val">0</span></div>
+        <div class="stat-box">УРОВЕНЬ: <span id="wave-val">1</span></div>
+    </div>
+
+        <div id="canvas-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="combo-text" style="position: absolute; color: #fff; font-family: 'Segoe UI', Roboto, sans-serif; font-weight: bold; font-size: 32px; text-shadow: 0 0 15px #00f6ff, 0 0 25px #00f6ff; pointer-events: none; display: none; transform: scale(0); transition: transform 0.2s ease-out; z-index: 10;">МЕГА-КОМБО!</div>
+        <div id="achievement-toast" style="position: absolute; left: 50%; top: 15%; transform: translate(-50%, -50%) scale(0); background: rgba(10, 10, 25, 0.9); border: 2px solid #ffcc00; box-shadow: 0 0 20px #ffcc00; color: #fff; padding: 12px 25px; font-family: sans-serif; font-weight: bold; border-radius: 8px; text-align: center; pointer-events: none; z-index: 15; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">🏆 ДОСТИЖЕНИЕ ПОЛУЧЕНО!</div>
+        <div id="ad-notice">РЕКЛАМА... ИГРА ПРОДОЛЖИТСЯ ЧЕРЕЗ СЕКУНДУ</div>
+    </div>
+
+
+    <div id="ui-bottom">
+        <div class="upgrade-btn" id="upg-count" onclick="buyUpgrade('count')">
+            <div class="btn-title">+1 Шарик</div>
+            <div id="upg-count-lvl">Лвл: 1</div>
+            <div class="btn-cost" id="upg-count-cost">10</div>
+        </div>
+        <div class="upgrade-btn" id="upg-power" onclick="buyUpgrade('power')">
+            <div class="btn-title">Сила +1</div>
+            <div id="upg-power-lvl">Лвл: 1</div>
+            <div class="btn-cost" id="upg-power-cost">15</div>
+        </div>
+        <div class="upgrade-btn" id="upg-income" onclick="buyUpgrade('income')">
+            <div class="btn-title">Доход x1.2</div>
+            <div id="upg-income-lvl">Лвл: 1</div>
+            <div class="btn-cost" id="upg-income-cost">25</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Инициализация Яндекс SDK ---
+    let ysdk = null;
+      let currentCombo = 0;
+        let gameLang = 'ru'; // Язык по умолчанию
+    
+    function initYandexSDK() {
+        if (typeof YaGames !== 'undefined') {
+            YaGames.init().then(ysdkInstance => {
+                ysdk = ysdkInstance;
+                console.log("Yandex Games SDK успешно инициализирован.");
+                
+                // 1. ВЫПОЛНЯЕМ ТРЕБОВАНИЕ МОДЕРАТОРА: запрашиваем язык у Яндекса
+                gameLang = ysdk.environment.i18n.lang;
+                console.log("Язык игрока определен платформой:", gameLang);
+                
+                // Если язык не русский, принудительно переводим интерфейс на английский
+                if (gameLang !== 'ru') {
+                    translateToEnglish();
+                }
+
+                showInterstitial();
+            }).catch(err => {
+                console.error("Ошибка инициализации SDK:", err);
+            });
+        }
+    }
+
+    // Функция, которая на лету заменит русский текст на английский для зарубежных игроков
+    function translateToEnglish() {
+        try {
+            // Переводим статические надписи
+            // Находим бокс с монетами (строка 135) и заменяем текст перед сном
+            const statBoxes = document.getElementsByClassName("stat-box");
+            if (statBoxes[0]) statBoxes[0].innerHTML = 'COINS: <span id="gold-val">' + document.getElementById("gold-val").innerText + '</span>';
+            if (statBoxes[1]) statBoxes[1].innerHTML = 'LEVEL: <span id="wave-val">' + document.getElementById("wave-val").innerText + '</span>';
+            
+            // Находим плашку рекламы (строка 141)
+            if (document.getElementById("ad-notice")) {
+                document.getElementById("ad-notice").innerText = "ADVERTISING... THE GAME WILL CONTINUE IN A SECOND";
+            }
+
+            // Переводим кнопки улучшений по их иерархии (строки 144-154)
+            const btnTitles = document.getElementsByClassName("btn-title");
+            if (btnTitles[0]) btnTitles[0].innerText = "+1 Ball";
+            if (btnTitles[1]) btnTitles[1].innerText = "Power +1";
+            if (btnTitles[2]) btnTitles[2].innerText = "Income x1.2"; // если есть третья кнопка
+
+            // Переводим надпись уровня "Лвл:"
+            const upgCounts = document.querySelectorAll("[id^='upg-'][id$='-lvl']");
+            upgCounts.forEach(el => {
+                el.innerHTML = el.innerHTML.replace("Лвл:", "Lvl:");
+            });
+            
+            console.log("Интерфейс игры успешно переведен на английский язык!");
+        } catch (e) {
+            console.error("Ошибка при переводе интерфейса:", e.message);
+        }
+    }
+
+
+    function showInterstitial() {
+        if (ysdk) {
+            document.getElementById('ad-notice').style.display = 'block';
+            ysdk.adv.showFullscreenAdv({
+                callbacks: {
+                    onClose: function(wasShown) {
+                        document.getElementById('ad-notice').style.display = 'none';
+                    },
+                    onError: function(error) {
+                        document.getElementById('ad-notice').style.display = 'none';
+                    }
+                }
+            });
+        }
+    }
+
+    // --- Игровой Движок ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvas-container');
+
+    let width = 0;
+    let height = 0;
+    function resize() {
+        width = container.clientWidth;
+        height = container.clientHeight;
+        canvas.width = width;
+        canvas.height = height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    let state = {
+        gold: 0,
+        wave: 1,
+        upgrades: {
+            count: 1,
+            power: 1,
+            income: 1
+        }
+    };
+
+    function loadGame() {
+        const saved = localStorage.getItem('neon_vortex_save');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                if (parsed) state = { ...state, ...parsed };
+            } catch(e) { console.log(e); }
+        }
+        updateUI();
+    }
+
+    function saveGame() {
+        localStorage.setItem('neon_vortex_save', JSON.stringify(state));
+    }
+
+    function getBallCount() { return state.upgrades.count + 4; }
+    function getBallPower() { return state.upgrades.power; }
+    function getIncomeMultiplier() { return 1 + (state.upgrades.income - 1) * 0.2; }
+    function getUpgradeCost(type, lvl) {
+        if (type === 'count') return Math.floor(10 * Math.pow(1.5, lvl - 1));
+        if (type === 'power') return Math.floor(15 * Math.pow(1.6, lvl - 1));
+        if (type === 'income') return Math.floor(25 * Math.pow(1.7, lvl - 1));
+        return 100;
+    }
+
+    let balls = [];
+    let blocks = [];
+    let vortexes = [];
+    let particles = [];
+
+    let gameState = 'AIMING';
+    let aimX = 0;
+    let aimY = 0;
+    let isAiming = false;
+
+    const launchOrigin = { x: 0, y: 0 };
+    let ballsToLaunch = 0;
+    let launchTimer = 0;
+    const launchInterval = 4;
+
+    class Ball {
+        constructor(x, y, vx, vy) {
+            this.x = x;
+            this.y = y;
+            this.vx = vx;
+            this.vy = vy;
+            this.radius = 6;
+            this.speed = 7;
+            const len = Math.hypot(this.vx, this.vy);
+            this.vx = (this.vx / len) * this.speed;
+            this.vy = (this.vy / len) * this.speed;
+        }
+
+        update() {
+            vortexes.forEach(v => {
+                const dx = v.x - this.x;
+                const dy = v.y - this.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist < v.radius && dist > 5) {
+                    const force = (1 - dist / v.radius) * 0.4;
+                    this.vx += (dx / dist) * force;
+                    this.vy += (dy / dist) * force;
+                }
+            });
+
+            let currSpeed = Math.hypot(this.vx, this.vy);
+            if (currSpeed < 3) currSpeed = 3;
+            if (currSpeed > 12) currSpeed = 12;
+            this.vx = (this.vx / currSpeed) * currSpeed;
+            this.vy = (this.vy / currSpeed) * currSpeed;
+
+            this.x += this.vx;
+            this.y += this.vy;
+
+            if (this.x - this.radius < 0) { this.x = this.radius; this.vx *= -1; }
+            if (this.x + this.radius > width) { this.x = width - this.radius; this.vx *= -1; }
+            if (this.y - this.radius < 0) { this.y = this.radius; this.vy *= -1; }
+
+            if (this.y > height) {
+                return false;
+            }
+            return true;
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#66fcf1';
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#66fcf1';
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    class Block {
+        constructor(col, row, hp) {
+            this.col = col;
+            this.row = row;
+            this.maxHp = hp;
+            this.hp = hp;
+            this.colsCount = 6;
+            this.padding = 4;
+            this.updateSize();
+        }
+
+        updateSize() {
+            this.w = (width - (this.padding * (this.colsCount + 1))) / this.colsCount;
+            this.h = this.w * 0.8;
+            this.x = this.padding + this.col * (this.w + this.padding);
+            this.y = 80 + this.row * (this.h + this.padding);
+        }
+
+        draw() {
+            if (this.hp <= 0) return;
+            this.updateSize();
+
+            const ratio = Math.min(this.hp / (state.wave * 3), 1);
+            ctx.strokeStyle = `hsl(${180 + ratio * 120}, 100%, 50%)`;
+            ctx.lineWidth = 2;
+            ctx.fillStyle = 'rgba(20, 30, 45, 0.8)';
+            
+            ctx.beginPath();
+            ctx.roundRect(this.x, this.y, this.w, this.h, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.hp, this.x + this.w / 2, this.y + this.h / 2);
+        }
+
+        checkCollision(ball) {
+            if (this.hp <= 0) return false;
+
+            const closestX = Math.max(this.x, Math.min(ball.x, this.x + this.w));
+            const closestY = Math.max(this.y, Math.min(ball.y, this.y + this.h));
+
+            const distanceX = ball.x - closestX;
+            const distanceY = ball.y - closestY;
+            const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+
+            if (distanceSquared < (ball.radius * ball.radius)) {
+                const edgeX = ball.x - (this.x + this.w / 2);
+                const edgeY = ball.y - (this.y + this.h / 2);
+                
+                if (Math.abs(edgeX / this.w) > Math.abs(edgeY / this.h)) {
+                    ball.vx = Math.abs(ball.vx) * Math.sign(edgeX);
+                } else {
+                    ball.vy = Math.abs(ball.vy) * Math.sign(edgeY);
+                }
+
+                const dmg = getBallPower();
+                this.hp -= dmg;
+                
+                const earned = Math.ceil(dmg * getIncomeMultiplier());
+                state.gold += earned;
+                document.getElementById('gold-val').innerText = Math.floor(state.gold);
+
+                createParticles(closestX, closestY, ctx.strokeStyle);
+
+                if (this.hp <= 0) {
+                    state.gold += Math.ceil(this.maxHp * 0.5 * getIncomeMultiplier());
+                    updateUI();
+                    currentCombo++;
+                }
+                return true;
+            }
+            return false;
+        }
+    }
+
+    class Vortex {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.radius = 65;
+            this.angle = 0;
+        }
+        update() {
+            this.angle += 0.05;
+        }
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+            ctx.strokeStyle = 'rgba(255, 0, 255, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (let i = 0; i < 3; i++) {
+                ctx.arc(0, 0, this.radius - i*15, 0, Math.PI * 1.5);
+            }
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
+
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            this.color = color;
+            this.vx = (Math.random() - 0.5) * 4;
+            this.vy = (Math.random() - 0.5) * 4;
+            this.alpha = 1;
+            this.life = 20 + Math.random() * 15;
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.alpha -= 1 / this.life;
+            return this.alpha > 0;
+        }
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = this.alpha;
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, 3, 3);
+            ctx.restore();
+        }
+    }
+
+    function createParticles(x, y, color) {
+        for(let i=0; i<4; i++) {
+            particles.push(new Particle(x, y, color));
+        }
+    }
+
+    function spawnWave() {
+        blocks.forEach(b => b.row++);
+        
+        let lose = false;
+        blocks.forEach(b => {
+            if (b.hp > 0 && b.row >= 7) lose = true;
+        });
+
+        if (lose) {
+            alert(`Игра окончена! Вы дошли до ${state.wave} волны.`);
+            state.wave = 1;
+            state.gold = Math.floor(state.gold * 0.5);
+            blocks = [];
+            vortexes = [];
+            saveGame();
+            updateUI();
+            showInterstitial();
+        }
+
+        const hp = state.wave * 3;
+        for (let col = 0; col < 6; col++) {
+            if (Math.random() > 0.4) {
+                blocks.push(new Block(col, 0, hp));
+            }
+        }
+
+        vortexes = [];
+        if (state.wave > 2) {
+            const count = Math.random() > 0.6 ? 2 : 1;
+            for(let i=0; i<count; i++) {
+                vortexes.push(new Vortex(
+                    50 + Math.random() * (width - 100),
+                    250 + Math.random() * (height - 400)
+                ));
+            }
+        }
+        
+        launchOrigin.x = width / 2;
+        launchOrigin.y = height - 20;
+    }
+
+    function updateUI() {
+        document.getElementById('gold-val').innerText = Math.floor(state.gold);
+        document.getElementById('wave-val').innerText = state.wave;
+
+        const costCount = getUpgradeCost('count', state.upgrades.count);
+        document.getElementById('upg-count-lvl').innerText = `Лвл: ${state.upgrades.count}`;
+        document.getElementById('upg-count-cost').innerText = costCount;
+        toggleBtnStyle('upg-count', state.gold >= costCount);
+
+        const costPower = getUpgradeCost('power', state.upgrades.power);
+        document.getElementById('upg-power-lvl').innerText = `Лвл: ${state.upgrades.power}`;
+        document.getElementById('upg-power-cost').innerText = costPower;
+        toggleBtnStyle('upg-power', state.gold >= costPower);
+
+        const costIncome = getUpgradeCost('income', state.upgrades.income);
+        document.getElementById('upg-income-lvl').innerText = `Лвл: ${state.upgrades.income}`;
+        document.getElementById('upg-income-cost').innerText = costIncome;
+        toggleBtnStyle('upg-income', state.gold >= costIncome);
+    }
+
+    function toggleBtnStyle(id, enabled) {
+        const btn = document.getElementById(id);
+        if (enabled) btn.classList.remove('disabled');
+        else btn.classList.add('disabled');
+    }
+
+    function buyUpgrade(type) {
+        const cost = getUpgradeCost(type, state.upgrades[type]);
+        if (state.gold >= cost) {
+            state.gold -= cost;
+            state.upgrades[type]++;
+            saveGame();
+            updateUI();
+        }
+    }
+
+    function handleStart(clientX, clientY) {
+        if (gameState !== 'AIMING') return;
+        isAiming = true;
+        setAim(clientX, clientY);
+    }
+
+    document.getElementById('canvas-container').addEventListener('mousedown', (e) => {
+        handleStart(e.clientX, e.clientY);
+    });
+
+    document.getElementById('canvas-container').addEventListener('mousemove', (e) => {
+        if (isAiming) setAim(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('mouseup', () => {
+        if (isAiming && gameState === 'AIMING') {
+            isAiming = false;
+            fireBalls();
+        }
+    });
+
+    document.getElementById('canvas-container').addEventListener('touchstart', (e) => {
+        if(e.touches.length > 0) handleStart(e.touches[0].clientX, e.touches[0].clientY);
+    });
+
+    document.getElementById('canvas-container').addEventListener('touchmove', (e) => {
+        if (isAiming && e.touches.length > 0) setAim(e.touches[0].clientX, e.touches[0].clientY);
+    });
+
+    document.getElementById('canvas-container').addEventListener('touchend', () => {
+        if (isAiming && gameState === 'AIMING') {
+            isAiming = false;
+            fireBalls();
+        }
+    });
+
+    function setAim(screenX, screenY) {
+        const rect = canvas.getBoundingClientRect();
+        aimX = screenX - rect.left;
+        aimY = screenY - rect.top;
+        if (aimY > launchOrigin.y - 40) {
+            aimY = launchOrigin.y - 40;
+        }
+    }
+
+    function fireBalls() {
+        gameState = 'FIRING';
+        ballsToLaunch = getBallCount();
+        launchTimer = 0;
+    }
+
+    function loop() {
+        ctx.clearRect(0, 0, width, height);
+
+        vortexes.forEach(v => {
+            v.update();
+            v.draw();
+        });
+
+        if (gameState === 'FIRING' && ballsToLaunch > 0) {
+            launchTimer++;
+            if (launchTimer >= launchInterval) {
+                launchTimer = 0;
+                const vx = aimX - launchOrigin.x;
+                const vy = aimY - launchOrigin.y;
+                balls.push(new Ball(launchOrigin.x, launchOrigin.y, vx, vy));
+                ballsToLaunch--;
+            }
+        }
+
+        balls = balls.filter(ball => {
+            const alive = ball.update();
+            if (alive) {
+                blocks.forEach(block => block.checkCollision(ball));
+                ball.draw();
+            }
+            return alive;
+        });
+
+        blocks = blocks.filter(block => block.hp > 0);
+        blocks.forEach(block => block.draw());
+
+        particles = particles.filter(p => {
+            const alive = p.update();
+            if (alive) p.draw();
+            return alive;
+        });
+
+        if (gameState === 'FIRING' && balls.length === 0 && ballsToLaunch === 0) {
+            gameState = 'CLEANUP';
+                    // --- Фича Комбо-Множитель ---
+        if (currentCombo >= 3) {
+            const comboEl = document.getElementById("combo-text");
+            if (comboEl) {
+                // Подстраиваем текст под язык игрока, который определил Яндекс
+                if (typeof gameLang !== 'undefined' && gameLang !== 'ru') {
+                    if (currentCombo >= 12) comboEl.innerText = "💥 CHAIN BLAST! x" + currentCombo;
+                    else if (currentCombo >= 7) comboEl.innerText = "🔥 MEGA COMBO! x" + currentCombo;
+                    else comboEl.innerText = "✨ GOOD! x" + currentCombo;
+                } else {
+                    if (currentCombo >= 12) comboEl.innerText = "💥 ЦЕПНОЙ ВЗРЫВ! x" + currentCombo;
+                    else if (currentCombo >= 7) comboEl.innerText = "🔥 МЕГА-КОМБО! x" + currentCombo;
+                    else comboEl.innerText = "✨ ХОРОШО! x" + currentCombo;
+                }
+
+                // Эффектно центрируем надпись поверх игрового поля
+                comboEl.style.display = "block";
+                comboEl.style.left = "50%";
+                comboEl.style.top = "40%";
+                comboEl.style.transform = "translate(-50%, -50%) scale(1.2)";
+
+                // Анимированно тушим надпись через 1.2 секунды
+                setTimeout(() => {
+                    comboEl.style.transform = "translate(-50%, -50%) scale(0)";
+                    setTimeout(() => { comboEl.style.display = "none"; }, 200);
+                }, 1200);
+            }
+        }
+        currentCombo = 0; // Сбрасываем счётчик для новой волны
+            state.wave++;
+            saveGame();
+            updateUI();
+            spawnWave();
+            
+            if (state.wave % 3 === 0) {
+                showInterstitial();
+            }
+            
+            gameState = 'AIMING';
+        }
+
+        if (gameState === 'AIMING' && isAiming) {
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(102, 252, 241, 0.5)';
+            ctx.lineWidth = 3;
+            ctx.moveTo(launchOrigin.x, launchOrigin.y);
+            ctx.lineTo(aimX, aimY);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(launchOrigin.x, launchOrigin.y, 8, 0, Math.PI*2);
+            ctx.fillStyle = '#66fcf1';
+            ctx.fill();
+        }
+
+        requestAnimationFrame(loop);
+    }
+
+    loadGame();
+    launchOrigin.x = width / 2;
+    launchOrigin.y = height - 20;
+    spawnWave();
+    initYandexSDK();
+    requestAnimationFrame(loop);
+
+</script>
+</body>
+</html>
