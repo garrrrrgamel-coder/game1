@@ -3,731 +3,997 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Неоновый Вихрь: Цепная Реакция</title>
-    <!-- Подключение SDK Яндекс Игр -->
-    <script src="https://yandex.ru/games/sdk/v2"></script>
+    <title>Неоновая Фабрика Слаймов: Алхимия</title>
+    <script src="https://yandex.ru"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: none;
-        }
-        body {
-            background-color: #0b0c10;
-            color: #c5c6c7;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden;
-            width: 100vw;
-            height: 100vh;
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; touch-action: none !important; }
+                body {
+            background: #06070d;
+            color: #fff;
+            font-family: 'Segoe UI', Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
+            height: 100vh; /* Строго фиксируем высоту по экрану */
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
         }
         #game-container {
-            position: relative;
             width: 100%;
-            height: 100%;
-            max-width: 500px;
-            max-height: 850px;
-            background: #1f2833;
-            box-shadow: 0 0 20px rgba(102, 252, 241, 0.2);
+            max-width: 430px;
+            height: 100vh; /* Меняем 100% на жесткие 100vh! */
+            max-height: 100%;
+            background: linear-gradient(135deg, #2b1055 0%, #752298 50%, #b600ff 100%);
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 4%, transparent 5%),
+                radial-gradient(circle at 75% 15%, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.04) 8%, transparent 9%),
+                radial-gradient(circle at 10% 75%, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.05) 6%, transparent 7%),
+                radial-gradient(circle at 85% 80%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 5%, transparent 6%),
+                radial-gradient(circle at 50% 50%, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.03) 12%, transparent 13%);
+            position: relative;
             display: flex;
             flex-direction: column;
+            border: 2px solid #3a0e4e;
+            overflow: hidden; /* Намертво запираем все модалки внутри игры */
         }
+
         #ui-top {
-            height: 60px;
-            padding: 0 15px;
+            width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #0b0c10;
-            border-bottom: 2px solid #45a29e;
-            z-index: 10;
+            padding: 15px;
+            position: absolute;
+            top: 0; left: 0; z-index: 10;
         }
         .stat-box {
-            font-size: 16px;
+            background: rgba(26, 29, 54, 0.8);
+            border: 2px solid #00f6ff;
+            padding: 8px 18px;
+            border-radius: 20px;
             font-weight: bold;
-            color: #66fcf1;
+            font-size: 18px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 15px rgba(0, 246, 255, 0.2);
         }
-        .stat-box span {
-            color: #fff;
+        #btn-collection {
+            background: linear-gradient(45deg, #ff007f, #ff00ff);
+            border: none;
+            color: white;
+            padding: 10px 22px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
         }
-        #canvas-container {
+         #gameCanvas {
             flex: 1;
-            position: relative;
-            background: #11141a;
-        }
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
             width: 100%;
             height: 100%;
-            display: block;
+            background: transparent;
         }
+
         #ui-bottom {
-            height: 110px;
-            background: #0b0c10;
-            border-top: 2px solid #45a29e;
+            width: 100%;
+            padding: 15px;
+            background: rgba(13, 15, 28, 0.9); /* Возвращаем красивый полупрозрачный темный фон */
+            border-top: 1px solid #252a4e;
             display: flex;
             justify-content: space-around;
-            align-items: center;
-            padding: 5px;
+            gap: 10px;
             z-index: 10;
+            /* Полностью убираем внешний отступ, чтобы кнопки прижались к низу без дыр! */
+            margin-bottom: 0 !important; 
         }
-        .upgrade-btn {
-            background: linear-gradient(135deg, #1f2833 0%, #0b0c10 100%);
-            border: 1px solid #45a29e;
-            border-radius: 8px;
-            color: #fff;
-            padding: 8px 12px;
-            font-size: 11px;
+
+
+        .buy-btn {
+            flex: 1;
+            background: #1a1d36;
+            border: 1px solid #3d4475;
+            border-radius: 12px;
+            padding: 10px 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
             cursor: pointer;
-            text-align: center;
-            width: 30%;
-            transition: all 0.1s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
-        .upgrade-btn:active {
-            transform: scale(0.95);
-            border-color: #66fcf1;
-        }
-        .upgrade-btn.disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            border-color: #333;
-        }
-        .btn-title {
             font-weight: bold;
-            color: #66fcf1;
-            margin-bottom: 3px;
-            text-transform: uppercase;
+            font-size: 12px;
         }
-        .btn-cost {
-            color: #ffbd59;
-            font-weight: bold;
-            margin-top: 3px;
-        }
-        #ad-notice {
+        .buy-btn:active { background: #252a4e; }
+
+        #collection-modal {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.9);
-            color: #66fcf1;
-            padding: 20px;
-            border: 2px solid #66fcf1;
-            border-radius: 10px;
-            font-weight: bold;
-            text-align: center;
-            display: none;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(6, 7, 13, 0.98);
             z-index: 100;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            padding-bottom: 20px !important; 
+            overflow: hidden !important; /* Намертво блокируем прокрутку всего окна, чтобы убрать хромание */
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            overflow-y: auto !important; /* Разрешаем скролл строго внутри этой сетки */
+            height: calc(100vh - 220px) !important; /* Фиксируем высоту для активации прокрутки */
+            padding: 10px 0;
+            margin-bottom: 10px;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            touch-action: pan-y !important; /* Включаем тач-жесты для мобилок */
+            -webkit-overflow-scrolling: touch; /* Плавный инерционный скролл */
+        }
+
+
+        .grid-container::-webkit-scrollbar { display: none; }
+        .grid-item {
+            aspect-ratio: 1;
+            background: #131629;
+            border: 2px solid #252a4e;
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 28px;
+            cursor: pointer;
+        }
+        .grid-item.unlocked { border-color: #00f6ff; box-shadow: 0 0 12px rgba(0,246,255,0.2); }
+        #hint-text {
+            background: #131629;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            color: #ffcc00;
+            font-weight: bold;
+            font-size: 15px;
+            border: 1px solid #252a4e;
+            margin-top: auto;
+            width: 100%;
         }
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <div id="ui-top">
-        <div class="stat-box">МОНЕТЫ: <span id="gold-val">0</span></div>
-        <div class="stat-box">УРОВЕНЬ: <span id="wave-val">1</span></div>
-    </div>
+    <div id="game-container">
+                               <div id="ui-top" style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 15px; position: absolute; top: 0; left: 0; z-index: 999 !important; pointer-events: auto !important;">
+            <!-- Плашка с монетами -->
+            <div class="stat-box">МОНЕТЫ: <span id="gold-val">100</span></div>
+            
+            <!-- Блок кнопок меню -->
+            <div style="display: flex; gap: 8px; pointer-events: auto !important;">
+                <!-- Кнопка Слаймы -->
+                <button onclick="toggleCollection(true)" style="background: linear-gradient(135deg, #ff00cc 0%, #ff0066 100%); border: none; border-radius: 20px; color: #fff; font-family: sans-serif; font-weight: bold; font-size: 14px; padding: 10px 20px; box-shadow: 0 0 15px rgba(255, 0, 204, 0.4); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: transform 0.1s; pointer-events: auto !important; position: relative; z-index: 1000 !important;">
+                    🧪 СЛАЙМЫ
+                </button>
+                <!-- Кнопка Фоны -->
+                <button onclick="toggleShop(true)" style="background: linear-gradient(135deg, #00f6ff 0%, #0066ff 100%); border: none; border-radius: 20px; color: #fff; font-family: sans-serif; font-weight: bold; font-size: 14px; padding: 10px 20px; box-shadow: 0 0 15px rgba(0, 246, 255, 0.4); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: transform 0.1s; pointer-events: auto !important; position: relative; z-index: 1000 !important;">
+                    🖼️ ФОНЫ
+                </button>
+            </div>
+        </div>
+        <!-- МОДАЛЬНОЕ ОКНО МАГАЗИНА ФОНОВ -->
+        <div id="shop-modal" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(6, 7, 13, 0.98); z-index: 101; display: none; flex-direction: column; padding: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; width:100%;">
+                <h2 style="font-size: 20px; color: #00f6ff; font-family: sans-serif;">Магазин локаций</h2>
+                <button onclick="toggleShop(false)" style="background:none; border:none; color:#fff; font-size:30px; cursor:pointer;">❌</button>
+            </div>
+            <!-- Сетка карточек -->
+            <div id="shop-grid" style="display: flex; flex-direction: column; gap: 15px; overflow-y: auto; height: calc(100vh - 100px); padding-bottom: 40px; width: 100%;"></div>
+        </div>
 
-        <div id="canvas-container">
+
+
         <canvas id="gameCanvas"></canvas>
-        <div id="combo-text" style="position: absolute; color: #fff; font-family: 'Segoe UI', Roboto, sans-serif; font-weight: bold; font-size: 32px; text-shadow: 0 0 15px #00f6ff, 0 0 25px #00f6ff; pointer-events: none; display: none; transform: scale(0); transition: transform 0.2s ease-out; z-index: 10;">МЕГА-КОМБО!</div>
-        <div id="achievement-toast" style="position: absolute; left: 50%; top: 15%; transform: translate(-50%, -50%) scale(0); background: rgba(10, 10, 25, 0.9); border: 2px solid #ffcc00; box-shadow: 0 0 20px #ffcc00; color: #fff; padding: 12px 25px; font-family: sans-serif; font-weight: bold; border-radius: 8px; text-align: center; pointer-events: none; z-index: 15; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">🏆 ДОСТИЖЕНИЕ ПОЛУЧЕНО!</div>
-        <div id="ad-notice">РЕКЛАМА... ИГРА ПРОДОЛЖИТСЯ ЧЕРЕЗ СЕКУНДУ</div>
-    </div>
+
+                <!-- Постоянная кнопка получения монет за видео -->
+        <button id="btn-free-gold" onclick="watchAdForGold()" style="width: calc(100% - 30px); background: linear-gradient(45deg, #ffcc00, #ff6600); border: 2px solid #fff; border-radius: 15px; color: #fff; font-family: sans-serif; font-weight: bold; font-size: 16px; padding: 12px; margin: 0 auto 10px auto; box-shadow: 0 0 15px rgba(255, 102, 0, 0.4); cursor: pointer; z-index: 20; display: block; text-align: center;">
+            📺 ПОЛУЧИТЬ +30 МОНЕТ БЕСПЛАТНО!
+        </button>
 
 
-    <div id="ui-bottom">
-        <div class="upgrade-btn" id="upg-count" onclick="buyUpgrade('count')">
-            <div class="btn-title">+1 Шарик</div>
-            <div id="upg-count-lvl">Лвл: 1</div>
-            <div class="btn-cost" id="upg-count-cost">10</div>
+        <div id="ui-bottom">
+            <div class="buy-btn" onclick="spawnBaseSlime(1)">🔴 <span>10 монет</span></div>
+            <div class="buy-btn" onclick="spawnBaseSlime(2)">🔵 <span>10 монет</span></div>
+            <div class="buy-btn" onclick="spawnBaseSlime(3)">🟡 <span>10 монет</span></div>
+            <div class="buy-btn" onclick="spawnBaseSlime(4)">⚪ <span>10 монет</span></div>
         </div>
-        <div class="upgrade-btn" id="upg-power" onclick="buyUpgrade('power')">
-            <div class="btn-title">Сила +1</div>
-            <div id="upg-power-lvl">Лвл: 1</div>
-            <div class="btn-cost" id="upg-power-cost">15</div>
-        </div>
-        <div class="upgrade-btn" id="upg-income" onclick="buyUpgrade('income')">
-            <div class="btn-title">Доход x1.2</div>
-            <div id="upg-income-lvl">Лвл: 1</div>
-            <div class="btn-cost" id="upg-income-cost">25</div>
-        </div>
-    </div>
-</div>
 
-<script>
-    // --- Инициализация Яндекс SDK ---
-    let ysdk = null;
-      let currentCombo = 0;
-        let gameLang = 'ru'; // Язык по умолчанию
-    
-    function initYandexSDK() {
+                         <div id="collection-modal">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; width:100%;">
+                <h2 style="font-size: 20px;">Алхимия Слаймов</h2>
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <!-- Неоново-красная кнопка сброса прогресса -->
+                    <button onclick="resetAllProgress()" style="background:linear-gradient(135deg, #ff3300 0%, #990000 100%); border:none; border-radius:12px; color:#fff; font-family:sans-serif; font-weight:bold; font-size:11px; padding:6px 12px; box-shadow:0 0 10px rgba(255,51,0,0.3); cursor:pointer;">⚠️ СБРОС</button>
+                    <button onclick="toggleCollection(false)" style="background:none; border:none; color:#fff; font-size:30px; cursor:pointer;">❌</button>
+                </div>
+            </div>
+            <!-- Сетка со слаймами -->
+            <div class="grid-container" id="collection-grid"></div>
+            <!-- Текст подсказки -->
+            <div id="hint-text">Нажми на закрытый слайм — посмотри видео и узнай рецепт! 📺</div>
+        </div>
+
+
+    <script>
+        let ysdk = null;
+        let gameLang = 'ru';
+        let gold = 100;
+
+                // --- ЗВУКОВОЙ ДВИЖОК ИГРЫ ---
+        const bgMusic = new Audio("https://google.com");
+        const squishSound = new Audio("https://google.com");
+        const winSound = new Audio("https://google.com");
+
+        bgMusic.loop = true;
+        bgMusic.volume = 0.15; // Музыка играет тихо на фоне
+        squishSound.volume = 0.4;
+        winSound.volume = 0.5;
+
+        let musicStarted = false;
+        function startBgMusic() {
+            if (!musicStarted) {
+                bgMusic.play().catch(err => console.log("Ожидание клика для звука"));
+                musicStarted = true;
+            }
+        }
+
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+                        const slimesDB = {
+            1: { name: "Красный", emoji: "🔴", color: "#ff1a1a", unlocked: true, recipe: "Базовый цвет" },
+            2: { name: "Синий", emoji: "🔵", color: "#0055ff", unlocked: true, recipe: "Базовый цвет" },
+            3: { name: "Жёлтый", emoji: "🟡", color: "#ffee00", unlocked: true, recipe: "Базовый цвет" },
+            4: { name: "Белый", emoji: "⚪", color: "#ffffff", unlocked: true, recipe: "Базовый цвет" },
+            5: { name: "Фиолетовый", emoji: "🟣", color: "#b600ff", unlocked: false, recipe: "Смешай Красный + Синий" },
+            6: { name: "Зелёный", emoji: "🟢", color: "#00ff00", unlocked: false, recipe: "Смешай Синий + Жёлтый" },
+            7: { name: "Оранжевый", emoji: "🟠", color: "#ff5500", unlocked: false, recipe: "Смешай Красный + Жёлтый" },
+            8: { name: "Розовый", emoji: "🌸", color: "#ff4da6", unlocked: false, recipe: "Смешай Красный + Белый" },
+            9: { name: "Голубой", emoji: "🌐", color: "#00ddff", unlocked: false, recipe: "Смешай Синий + Белый" },
+            10: { name: "Шоколадный", emoji: "🟤", color: "#663300", unlocked: false, recipe: "Смешай Оранжевый + Фиолетовый" },
+            11: { name: "Кислотный", emoji: "🥝", color: "#aaff00", unlocked: false, recipe: "Смешай Зелёный + Розовый" },
+            12: { name: "Магический", emoji: "🔮", color: "#440066", unlocked: false, recipe: "Смешай Фиолетовый + Голубой" },
+            13: { name: "Мятный", emoji: "🧼", color: "#77ffcc", unlocked: false, recipe: "Смешай Зелёный + Голубой" },
+            14: { name: "Золотой", emoji: "👑", color: "#ffaa00", unlocked: false, recipe: "Смешай Оранжевый + Жёлтый" },
+            15: { name: "Огненный", emoji: "🔥", color: "#ff0000", unlocked: false, recipe: "Смешай Красный + Оранжевый" },
+            16: { name: "Космический", emoji: "🌌", color: "#0a0015", unlocked: false, recipe: "Смешай Магический + Синий" },
+            
+            // --- НОВЫЙ ЭПИЧЕСКИЙ КОНТЕНТ ДЛЯ УДЕРЖАНИЯ ИГРОКОВ ---
+            17: { name: "Изумрудный", emoji: "💎", color: "#00a36c", unlocked: false, recipe: "Смешай Зелёный + Золотой" },
+            18: { name: "Магматический", emoji: "🌋", color: "#ff3300", unlocked: false, recipe: "Смешай Огненный + Шоколадный" },
+            19: { name: "Чернильный", emoji: "🐙", color: "#1a1a2e", unlocked: false, recipe: "Смешай Фиолетовый + Шоколадный" },
+            20: { name: "Вампирский", emoji: "🧛", color: "#4a0000", unlocked: false, recipe: "Смешай Огненный + Чернильный" },
+            21: { name: "Лавандовый", emoji: "🪻", color: "#e6e6fa", unlocked: false, recipe: "Смешай Розовый + Голубой" },
+            22: { name: "Неоновый Лайм", emoji: "🧪", color: "#ccff00", unlocked: false, recipe: "Смешай Кислотный + Мятный" },
+            23: { name: "Кибер-Панк", emoji: "⚡", color: "#ff0055", unlocked: false, recipe: "Смешай Кислотный + Магический" },
+            24: { name: "Галактический Лорд", emoji: "👑", color: "#0d001a", unlocked: false, recipe: "Смешай Космический + Кибер-Панк" },
+            25: { name: "Радужная Сингулярность", emoji: "🌈", color: "rainbow", unlocked: false, recipe: "ФИНАЛ ИГРЫ! Смешай Галактический Лорд + Золотой!" }
+        };
+
+               const recipes = {
+            "1_2": 5, "2_1": 5,   // К + С = Фиолетовый
+            "2_3": 6, "3_2": 6,   // С + Ж = Зелёный
+            "1_3": 7, "3_1": 7,   // К + Ж = Оранжевый
+            "1_4": 8, "4_1": 8,   // К + Б = Розовый
+            "2_4": 9, "4_2": 9,   // С + Б = Голубой
+            "7_5": 10, "5_7": 10, // О + Ф = Шоколадный
+            "6_8": 11, "8_6": 11, // З + Р = Кислотный
+            "5_9": 12, "9_5": 12, // Ф + Г = Магический
+            "6_9": 13, "9_6": 13, // З + Б = Мятный
+            "7_3": 14, "3_7": 14, // О + Ж = Золотой
+            "1_7": 15, "7_1": 15, // К + О = Огненный
+            "12_2": 16, "2_12": 16, // Маг + С = Космический
+            
+            // --- НОВЫЕ КОМБИНАЦИИ ---
+            "6_14": 17, "14_6": 17, // З + Зол = Изумрудный
+            "15_10": 18, "10_15": 18, // Огн + Шок = Магматический
+            "5_10": 19, "10_5": 19,  // Ф + Шок = Чернильный
+            "15_19": 20, "19_15": 20, // Огн + Черн = Вампирский
+            "8_9": 21, "9_8": 21,   // Роз + Гол = Лавандовый
+            "11_13": 22, "13_11": 22, // Кисл + Мятн = Неоновый Лайм
+            "11_12": 23, "12_11": 23, // Кисл + Маг = Кибер-Панк
+            "16_23": 24, "23_16": 24, // Косм + Кибер = Галактический Лорд
+            "24_14": 25, "14_24": 25  // Гал. Лорд + Золотой = Радужная Сингулярность
+        };
+        // --- БАЗА ДАННЫХ МАГАЗИНА ФОНОВ ---
+        let currentBgId = "bg_neon";
+        let purchasedBgs = ["bg_neon"]; // Базовый неоновый фон открыт сразу
+
+                        const backgroundsDB = {
+            "bg_neon": { 
+                name: "Неоновый вихрь", price: 0, 
+                style: "linear-gradient(135deg, #2b1055 0%, #752298 50%, #b600ff 100%)",
+                dots: `radial-gradient(circle at 20% 30%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 4%, transparent 5%),
+                       radial-gradient(circle at 75% 15%, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.04) 8%, transparent 9%),
+                       radial-gradient(circle at 10% 75%, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.05) 6%, transparent 7%),
+                       radial-gradient(circle at 85% 80%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.06) 5%, transparent 6%)`
+            },
+            "bg_cyber": { 
+                name: "Кибер-Лаборатория", price: 400, 
+                style: "linear-gradient(135deg, #090a10 0%, #121520 100%)",
+                dots: `linear-gradient(rgba(0, 246, 255, 0.05) 1px, transparent 1px),
+                       linear-gradient(90deg, rgba(0, 246, 255, 0.05) 1px, transparent 1px),
+                       radial-gradient(circle at 50% 50%, rgba(0, 246, 255, 0.1) 0%, transparent 70%)` // Лазерная хакерская сетка с бирюзовым свечением центра
+            },
+            "bg_magma": { 
+                name: "Адская Магма", price: 800, 
+                style: "linear-gradient(135deg, #150000 0%, #300000 100%)",
+                dots: `radial-gradient(circle at 50% 50%, #ff3300 0%, #4a0000 40%, transparent 70%),
+                       radial-gradient(circle at 15% 25%, rgba(255,100,0,0.15) 0%, transparent 8px),
+                       radial-gradient(circle at 75% 35%, rgba(255,60,0,0.2) 0%, transparent 6px),
+                       radial-gradient(circle at 40% 85%, rgba(255,150,0,0.15) 0%, transparent 10px),
+                       radial-gradient(circle at 85% 75%, rgba(255,90,0,0.2) 0%, transparent 8px)` // Раскаленное огненное ядро плазмы и крупные плавающие искры мантии!
+            },
+            "bg_alien": { 
+                name: "Слизь Пришельцев", price: 1500, 
+                style: "linear-gradient(135deg, #020b05 0%, #061c0e 100%)",
+                dots: `radial-gradient(circle at 25% 40%, rgba(0,255,100,0.06) 0%, rgba(0,255,100,0.06) 12%, transparent 13%),
+                       radial-gradient(circle at 70% 75%, rgba(0,255,100,0.05) 0%, rgba(0,255,100,0.05) 18%, transparent 19%),
+                       radial-gradient(circle at 85% 25%, rgba(0,255,100,0.07) 0%, rgba(0,255,100,0.07) 10%, transparent 11%),
+                       radial-gradient(circle at 50% 50%, rgba(0,255,100,0.08) 0%, transparent 60%)` // Кислотные био-пузыри радиоактивной жижи
+            }
+        };
+
+
+
+        let activeSlimes = []; 
+        let draggedSlime = null; 
+        
+        let mixingPair = null; 
+        let mixProgress = 0;   
+        let lastX = 0, lastY = 0; 
+
+        function resizeCanvas() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function spawnBaseSlime(id) {
+            if (gold >= 10) {
+                gold -= 10;
+                document.getElementById("gold-val").innerText = gold;
+                activeSlimes.push({
+                    id: id,
+                    x: canvas.width / 2 + (Math.random() - 0.5) * 60,
+                    y: canvas.height / 2 + (Math.random() - 0.5) * 60,
+                    radius: 35,
+                    vx: (Math.random() - 0.5) * 0.8,
+                    vy: (Math.random() - 0.5) * 0.8
+                });
+                checkBankruptcy();
+            }
+        }
+
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches.clientX : e.clientX;
+            const clientY = e.touches ? e.touches.clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+                       function startDrag(e) {
+            startBgMusic(); // Включаем фоновую музыку при первом прикосновении к игре!
+            
+            const pos = getMousePos(e);
+            if (mixingPair) return;
+
+            for (let slime of activeSlimes) {
+                let dist = Math.hypot(slime.x - pos.x, slime.y - pos.y);
+                if (dist < slime.radius) {
+                    draggedSlime = slime;
+                    slime.vx = 0; slime.vy = 0;
+                    
+                    // ВОСПРОИЗВОДИМ ЗВУК СКВИША!
+                    squishSound.currentTime = 0; // Сбрасываем таймер, чтобы звуком можно было «спамить»
+                    squishSound.play().catch(err => {});
+                    break;
+                }
+            }
+            lastX = pos.x; lastY = pos.y;
+        }
+
+        function moveDrag(e) {
+            const pos = getMousePos(e);
+
+            if (mixingPair) {
+                let travel = Math.hypot(pos.x - lastX, pos.y - lastY);
+                let distToCenter = Math.hypot(pos.x - mixingPair.x, pos.y - mixingPair.y);
+                
+                if (distToCenter < 130 && travel > 2) {
+                    mixProgress += travel * 0.25; 
+                    
+                    
+                }
+
+                if (mixProgress >= 100) {
+                    let resultId = mixingPair.resultId;
+                    slimesDB[resultId].unlocked = true; 
+                    
+                    gold += 50; // Добавлено строго сюда!
+                    document.getElementById("gold-val").innerText = gold;
+                    // ВКЛЮЧАЕМ ЗВУК ПОБЕДЫ!
+                    winSound.currentTime = 0;
+                    winSound.play().catch(err => {});
+
+
+                    mixingPair.slime2.id = resultId;
+
+                    mixingPair.slime2.x = mixingPair.x;
+                    mixingPair.slime2.y = mixingPair.y;
+                    mixingPair.slime2.radius = Math.min(mixingPair.slime2.radius + 6, 60);
+                    mixingPair.slime2.vx = (Math.random() - 0.5) * 1.5;
+                    mixingPair.slime2.vy = (Math.random() - 0.5) * 1.5;
+
+                    activeSlimes = activeSlimes.filter(s => s !== mixingPair.slime1);
+                    mixingPair = null;
+                    mixProgress = 0;
+                    checkBankruptcy();
+                }
+                lastX = pos.x; lastY = pos.y;
+                return;
+            }
+
+            if (!draggedSlime) return;
+            draggedSlime.x = pos.x;
+            draggedSlime.y = pos.y;
+            lastX = pos.x; lastY = pos.y;
+        }
+
+        function endDrag(e) {
+            if (!draggedSlime) return;
+            if (mixingPair) { draggedSlime = null; return; }
+
+            for (let i = 0; i < activeSlimes.length; i++) {
+                let other = activeSlimes[i];
+                if (other === draggedSlime) continue;
+
+                let dist = Math.hypot(draggedSlime.x - other.x, draggedSlime.y - other.y);
+                if (dist < (draggedSlime.radius + other.radius) * 0.8) {
+                    let key = draggedSlime.id + "_" + other.id;
+                    if (recipes[key]) {
+                        mixingPair = {
+                            slime1: draggedSlime,
+                            slime2: other,
+                            resultId: recipes[key],
+                            x: (draggedSlime.x + other.x) / 2,
+                            y: (draggedSlime.y + other.y) / 2
+                        };
+                        mixProgress = 0;
+                        break;
+                    }
+                }
+            }
+            if (draggedSlime) {
+                draggedSlime.vx = (Math.random() - 0.5) * 0.8;
+                draggedSlime.vy = (Math.random() - 0.5) * 0.8;
+            }
+            draggedSlime = null;
+        }
+
+                // Интеллектуальный мост: переводим мобильный тач в мышку без задержек браузера
+                function handleTouch(e, mouseEventName) {
+            const modal1 = document.getElementById("collection-modal");
+            const modal2 = document.getElementById("shop-modal");
+            let isMenuOpen = (modal1 && modal1.style.display === "flex") || (modal2 && modal2.style.display === "flex");
+
+            if (isMenuOpen) {
+                return; 
+            }
+
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent(mouseEventName, {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                canvas.dispatchEvent(mouseEvent);
+            }
+            if (e.cancelable) e.preventDefault(); 
+        }
+
+        canvas.addEventListener('touchstart', function(e) { handleTouch(e, 'mousedown'); }, { passive: false });
+        canvas.addEventListener('touchmove', function(e) { handleTouch(e, 'mousemove'); }, { passive: false });
+        canvas.addEventListener('touchend', function(e) { endDrag(e); }, { passive: false });
+        
+        canvas.addEventListener('mousedown', startDrag);
+        canvas.addEventListener('mousemove', moveDrag);
+        canvas.addEventListener('mouseup', endDrag);
+
+                      function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // --- СИСТЕМА ДИНАМИЧЕСКИХ ЖИВЫХ СПЕЦЭФФЕКТОВ ДЛЯ ФОНОВ ---
+            if (!window.bgParticles) {
+                // Создаём массив частиц один раз при старте игры
+                window.bgParticles = [];
+                for (let i = 0; i < 20; i++) {
+                    window.bgParticles.push({
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        size: 1 + Math.random() * 4,
+                        speed: 0.3 + Math.random() * 0.8,
+                        alpha: 0.2 + Math.random() * 0.6,
+                        seed: Math.random() * 100
+                    });
+                }
+            }
+
+            // Отрисовка уникальных частиц под текущую локацию
+            if (currentBgId === "bg_magma" || currentBgId === "bg_alien" || currentBgId === "bg_cyber") {
+                window.bgParticles.forEach(p => {
+                    // Частицы плавно плывут вверх
+                    p.y -= p.speed;
+                    if (p.y < 80) { // Возвращаем частицы вниз экрана, когда они улетают
+                        p.y = canvas.height;
+                        p.x = Math.random() * canvas.width;
+                    }
+
+                    ctx.save();
+                    ctx.beginPath();
+
+                    if (currentBgId === "bg_magma") {
+                        // Магма: рисуем раскалённые, мерцающие огненные искры
+                        let pulse = Math.sin(Date.now() * 0.003 + p.seed) * 2;
+                        ctx.arc(p.x, p.y, Math.max(1, p.size + pulse), 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(255, ${70 + Math.floor(Math.sin(p.seed)*40)}, 0, ${p.alpha})`;
+                        ctx.shadowBlur = 15;
+                        ctx.shadowColor = "#ff4500";
+                    } 
+                    else if (currentBgId === "bg_alien") {
+                        // Пришельцы: круглые радиоактивные пузырьки, которые покачиваются вбок
+                        p.x += Math.sin(Date.now() * 0.002 + p.seed) * 0.2;
+                        ctx.arc(p.x, p.y, p.size * 1.5, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(0, 255, 100, ${p.alpha * 0.4})`;
+                        ctx.strokeStyle = `rgba(0, 255, 100, ${p.alpha * 0.7})`;
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    } 
+                    else if (currentBgId === "bg_cyber") {
+                        // Кибер-фон: строгие квадратные пиксели-импульсы данных
+                        ctx.rect(p.x, p.y, 3, 6);
+                        ctx.fillStyle = `rgba(0, 246, 255, ${p.alpha * 0.6})`;
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = "#00f6ff";
+                    }
+
+                    ctx.fill();
+                    ctx.restore();
+                });
+            }
+
+            activeSlimes.forEach(slime => {
+                if (mixingPair && (slime === mixingPair.slime1 || slime === mixingPair.slime2)) {
+                    return;
+                }
+
+                                if (slime !== draggedSlime) {
+                    // Эффект густого сиропа: постоянно слегка притормаживаем слаймы
+                    slime.vx *= 0.995;
+                    slime.vy *= 0.995;
+
+                    slime.x += slime.vx;
+                    slime.y += slime.vy;
+                    
+                    // Плавный отскок от стен без ускорения
+                    if (slime.x - slime.radius < 0) { slime.x = slime.radius; slime.vx *= -0.8; }
+                    if (slime.x + slime.radius > canvas.width) { slime.x = canvas.width - slime.radius; slime.vx *= -0.8; }
+                    if (slime.y - slime.radius < 80) { slime.y = 80 + slime.radius; slime.vy *= -0.8; }
+                    if (slime.y + slime.radius > canvas.height) { slime.y = canvas.height - slime.radius; slime.vy *= -0.8; }
+                }
+                                // --- МЯГКАЯ ФИЗИКА СТОЛКНОВЕНИЯ И ОТТАЛКИВАНИЯ ЖЕЛЕ ---
+                activeSlimes.forEach(other => {
+                    if (slime === other || (mixingPair && (slime === mixingPair.slime1 || slime === mixingPair.slime2 || other === mixingPair.slime1 || other === mixingPair.slime2))) return;
+                    
+                    let dx = other.x - slime.x;
+                    let dy = other.y - slime.y;
+                    let distance = Math.hypot(dx, dy);
+                    let minDist = slime.radius + other.radius;
+
+                    if (distance < minDist) {
+                        // УМНЫЙ ТРИГГЕР: Если мы тащим слайм на другой и для них ЕСТЬ рецепт — НЕ расталкиваем их!
+                        if (slime === draggedSlime || other === draggedSlime) {
+                            let key1 = slime.id + "_" + other.id;
+                            let key2 = other.id + "_" + slime.id;
+                            if (recipes[key1] || recipes[key2]) return; // Пропускаем физику, давая им сочно слиться!
+                        }
+
+                        let overlap = minDist - distance;
+                        let angle = Math.atan2(dy, dx);
+                        let force = overlap * 0.12; // Возвращаем хорошую упругость
+
+                        // Передаем силу сжатия желе в радиус точек
+                        slime.radiusWave = (slime.radiusWave || 0) - overlap * 0.25;
+                        other.radiusWave = (other.radiusWave || 0) - overlap * 0.25;
+
+                        if (slime !== draggedSlime) {
+                            slime.x -= Math.cos(angle) * (overlap * 0.5);
+                            slime.y -= Math.sin(angle) * (overlap * 0.5);
+                            slime.vx -= Math.cos(angle) * force;
+                            slime.vy -= Math.sin(angle) * force;
+                        }
+                        if (other !== draggedSlime) {
+                            other.x += Math.cos(angle) * (overlap * 0.5);
+                            other.y += Math.sin(angle) * (overlap * 0.5);
+                            other.vx += Math.cos(angle) * force;
+                            other.vy += Math.sin(angle) * force;
+                        }
+                    }
+                });
+
+                // Пружинное восстановление формы амёбы после удара
+                slime.radiusWave = (slime.radiusWave || 0) * 0.85;
+
+
+                ctx.save(); // Сохраняем состояние холста для конкретного слайма
+
+                ctx.beginPath();
+                // --- НАСТОЯЩАЯ ИДЕАЛЬНО ПЛАВНАЯ АМЁБА ---
+                let points = [];
+                let time = Date.now() * 0.003; 
+                let speed = Math.min(Math.hypot(slime.vx, slime.vy), 3);
+                if (slime === draggedSlime) speed = 3.5;
+                let moveAngle = Math.atan2(slime.vy, slime.vx);
+
+                for (let i = 0; i < 8; i++) {
+                    let angle = (Math.PI * 2 / 8) * i;
+                    let wave = Math.sin(time + i * 1.0) * 24; 
+                    let stretch = Math.cos(angle - moveAngle) * (speed * 4); 
+                    let r = slime.radius + stretch + wave + (slime.radiusWave || 0);
+                    points.push({
+                        x: slime.x + Math.cos(angle) * r,
+                        y: slime.y + Math.sin(angle) * r
+                    });
+                }
+
+                ctx.moveTo((points[0].x + points[points.length - 1].x) / 2, (points[0].y + points[points.length - 1].y) / 2);
+                for (let i = 0; i < points.length; i++) {
+                    let next = points[(i + 1) % points.length];
+                    let xc = (points[i].x + next.x) / 2;
+                    let yc = (points[i].y + next.y) / 2;
+                    ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+                }
+                ctx.closePath();
+                
+                let data = slimesDB[slime.id];
+                if (data.color === 'rainbow') {
+                    let grad = ctx.createRadialGradient(slime.x, slime.y, 0, slime.x, slime.y, slime.radius);
+                    grad.addColorStop(0, 'red'); grad.addColorStop(0.2, 'orange'); grad.addColorStop(0.4, 'yellow');
+                    grad.addColorStop(0.6, 'green'); grad.addColorStop(0.8, 'blue'); grad.addColorStop(1, 'purple');
+                    ctx.fillStyle = grad;
+                } else {
+                    ctx.fillStyle = data.color;
+                }
+
+                ctx.shadowBlur = 35;
+                ctx.shadowColor = data.color === 'rainbow' ? '#ff00ff' : data.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // --- ИЗОЛИРОВАННАЯ СИСТЕМА БЛЁСТОК ДЛЯ РЕДКИХ СЛАЙМОВ ---
+                if (slime.id === 12 || (slime.id >= 16 && slime.id <= 24)) {
+                    ctx.clip(); // Обрезаем строго внутри текущей амёбы
+                    for (let j = 0; j < 6; j++) {
+                        let sparkX = slime.x + Math.sin(Date.now() * 0.002 + j * 50) * (slime.radius * 0.5);
+                        let sparkY = slime.y + Math.cos(Date.now() * 0.0015 + j * 30) * (slime.radius * 0.5);
+                        let sparkSize = 1.5 + Math.sin(Date.now() * 0.01 + j) * 1;
+                        
+                        ctx.beginPath();
+                        ctx.arc(sparkX, sparkY, Math.max(0.5, sparkSize), 0, Math.PI * 2);
+                        ctx.fillStyle = slime.id === 12 ? (j % 2 === 0 ? "#ff00ff" : "#00f0ff") : "#ffffff";
+                        ctx.shadowBlur = 10;
+                        ctx.shadowColor = ctx.fillStyle;
+                        ctx.fill();
+                    }
+                }
+
+                ctx.restore(); // Полностью сбрасываем маску обрезки для следующего слайма
+            });
+
+            if (mixingPair) {
+                let angle = (mixProgress * 0.15) + (Date.now() * 0.002);
+                let orbitRadius = 24 * (1 - mixProgress / 100);
+
+                mixingPair.slime1.x = mixingPair.x + Math.cos(angle) * orbitRadius;
+                mixingPair.slime1.y = mixingPair.y + Math.sin(angle) * orbitRadius;
+                mixingPair.slime2.x = mixingPair.x + Math.cos(angle + Math.PI) * orbitRadius;
+                mixingPair.slime2.y = mixingPair.y + Math.sin(angle + Math.PI) * orbitRadius;
+
+                let jellyWave = Math.sin(Date.now() * 0.01) * 3;
+                mixingPair.slime1.currentRadius = mixingPair.slime1.radius + jellyWave;
+                mixingPair.slime2.currentRadius = mixingPair.slime2.radius - jellyWave;
+
+                let s1 = mixingPair.slime1;
+                let s2 = mixingPair.slime2;
+                let data1 = slimesDB[s1.id];
+                let data2 = slimesDB[s2.id];
+                let resultData = slimesDB[mixingPair.resultId];
+
+                let mixRadius = Math.max(s1.radius, s2.radius) * (1.1 + mixProgress / 200);
+                
+                ctx.beginPath();
+                ctx.arc(mixingPair.x, mixingPair.y, mixRadius, 0, Math.PI * 2);
+
+                let radGrad = ctx.createRadialGradient(
+                    mixingPair.x, mixingPair.y, 0, 
+                    mixingPair.x, mixingPair.y, mixRadius
+                );
+
+                let c1 = data1.color === 'rainbow' ? '#ff00ff' : data1.color;
+                let c2 = data2.color === 'rainbow' ? '#00ffff' : data2.color;
+                let targetColor = resultData.color === 'rainbow' ? '#ff00ff' : resultData.color;
+
+                let coreSize = mixProgress / 100;
+                
+                radGrad.addColorStop(0, targetColor);
+                radGrad.addColorStop(Math.min(0.8, coreSize * 0.6), targetColor);
+                
+                if (Math.sin(angle) > 0) {
+                    radGrad.addColorStop(0.6, c1);
+                    radGrad.addColorStop(1, c2);
+                } else {
+                    radGrad.addColorStop(0.6, c2);
+                    radGrad.addColorStop(1, c1);
+                }
+
+                ctx.fillStyle = radGrad;
+                ctx.shadowBlur = 35;
+                ctx.shadowColor = targetColor;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                ctx.beginPath();
+                ctx.arc(mixingPair.x, mixingPair.y, 75, 0, Math.PI * 2);
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+                ctx.lineWidth = 8;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(mixingPair.x, mixingPair.y, 75, -Math.PI / 2, (-Math.PI / 2) + (Math.PI * 2 * (mixProgress / 100)));
+                ctx.strokeStyle = "#00f6ff";
+                ctx.lineWidth = 8;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = "#00f6ff";
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.font = "bold 16px sans-serif";
+                ctx.fillStyle = "#ffcc00";
+                ctx.fillText("КРУТИ ПАЛЬЦЕМ! 🌀", mixingPair.x, mixingPair.y - 95);
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+
+              function buildCollectionGrid() {
+            const grid = document.getElementById("collection-grid");
+            if (!grid) return;
+            
+            grid.className = "grid-container"; 
+            grid.innerHTML = "";
+            
+            for (let id in slimesDB) {
+                let slime = slimesDB[id];
+                const item = document.createElement("div");
+                item.className = "grid-item" + (slime.unlocked ? " unlocked" : "");
+                item.innerHTML = slime.unlocked ? slime.emoji : "❓";
+                item.onclick = () => showSlimeHint(slime);
+                grid.appendChild(item);
+            }
+        }
+
+
+        function showSlimeHint(slime) {
+            const hintEl = document.getElementById("hint-text");
+            if (!hintEl) return;
+            
+            if (slime.unlocked) {
+                hintEl.innerText = `Это слайм "${slime.name}"! Он уже открыт в лаборатории! 🎉`;
+                return;
+            }
+
+            if (typeof ysdk !== 'undefined' && ysdk !== null) {
+                hintEl.innerText = "Загрузка видео рецепта... 📺";
+                ysdk.adv.showRewardedVideo({
+                    callbacks: {
+                        onRewarded: () => { hintEl.innerText = `💡 РЕЦЕПТ: ${slime.recipe}`; },
+                        onError: () => { hintEl.innerText = `💡 РЕЦЕПТ (Сбой видео): ${slime.recipe}`; }
+                    }
+                });
+            } else {
+                hintEl.innerText = `💡 ТЕСТ-РЕЦЕПТ: ${slime.recipe}`;
+            }
+        }
+
+        function toggleCollection(show) {
+    const modal = document.getElementById("collection-modal");
+    const uiTop = document.getElementById("ui-top");
+    if (modal) modal.style.display = show ? "flex" : "none";
+    if (uiTop) uiTop.style.display = show ? "none" : "flex"; 
+    if (show) buildCollectionGrid();
+}
+
+
+                function watchAdForGold() {
+            const btn = document.getElementById("btn-free-gold");
+            
+            // Проверяем, подключено ли SDK Яндекс Игр
+            if (typeof ysdk !== 'undefined' && ysdk !== null) {
+                if (btn) btn.innerText = "ЗАГРУЗКА... 📺";
+                
+                // Вызываем реальное видео с вознаграждением через Яндекс SDK!
+                ysdk.adv.showRewardedVideo({
+                    callbacks: {
+                        onOpen: () => {
+                            console.log('Рекламный ролик открылся');
+                        },
+                        onRewarded: () => {
+                            // НАГРАДА: Начисляем монеты ТОЛЬКО если видео досмотрено до конца!
+                            gold += 30;
+                            document.getElementById("gold-val").innerText = gold;
+                            alert("🎉 Награда получена! +30 монет зачислено!");
+                        },
+                        onClose: () => {
+                            if (btn) btn.innerText = "📺 ПОЛУЧИТЬ +30 МОНЕТ БЕСПЛАТНО!";
+                        },
+                        onError: (error) => {
+                            console.log('Ошибка воспроизведения рекламы:', error);
+                            if (btn) btn.innerText = "📺 ПОЛУЧИТЬ +30 МОНЕТ БЕСПЛАТНО!";
+                            // Костыль для тестов: если реклама не загрузилась в консоли, всё равно даём монеты
+                            gold += 30;
+                            document.getElementById("gold-val").innerText = gold;
+                        }
+                    }
+                });
+            } else {
+                // Если играем локально на ПК вне Яндекса — даём монеты мгновенно для тестов
+                gold += 30;
+                document.getElementById("gold-val").innerText = gold;
+                alert("🎉 ТЕСТ: +30 монет зачислено (без SDK)!");
+            }
+        }
+
+        function checkBankruptcy() {}
+
         if (typeof YaGames !== 'undefined') {
             YaGames.init().then(ysdkInstance => {
                 ysdk = ysdkInstance;
-                console.log("Yandex Games SDK успешно инициализирован.");
-                
-                // 1. ВЫПОЛНЯЕМ ТРЕБОВАНИЕ МОДЕРАТОРА: запрашиваем язык у Яндекса
                 gameLang = ysdk.environment.i18n.lang;
-                console.log("Язык игрока определен платформой:", gameLang);
+            }).catch(err => console.log("Тест вне Яндекса"));
+        } else {
+            console.log("SDK Яндекс Игр не обнаружено (локальный тест)");
+        }
+        function toggleShop(show) {
+    const modal = document.getElementById("shop-modal");
+    const uiTop = document.getElementById("ui-top");
+    if (modal) modal.style.display = show ? "flex" : "none";
+    if (uiTop) uiTop.style.display = show ? "none" : "flex";
+    if (show) buildShopGrid();
+}
+
+                function buildShopGrid() {
+            const grid = document.getElementById("shop-grid");
+            if (!grid) return;
+            grid.innerHTML = "";
+
+            for (let id in backgroundsDB) {
+                let bg = backgroundsDB[id];
+                let isPurchased = purchasedBgs.includes(id);
+                let isActive = currentBgId === id;
+
+                const item = document.createElement("div");
+                item.style.cssText = `background: ${bg.style}; border: 2px solid ${isActive ? '#00f6ff' : '#252a4e'}; border-radius: 16px; padding: 15px; display: flex; justify-content: space-between; align-items: center; color: #fff; box-shadow: ${isActive ? '0 0 15px rgba(0,246,255,0.3)' : 'none'}; cursor: pointer;`;
+
+                let btnText = isActive ? "АКТИВЕН" : (isPurchased ? "ВЫБРАТЬ" : `КУПИТЬ 🪙 ${bg.price}`);
+                let btnBg = isActive ? "#00f6ff" : (isPurchased ? "#2b1055" : "#ff6600");
+
+                // Создаём текстовый блок для названия локации
+                const textDiv = document.createElement("div");
+                textDiv.innerHTML = `<div style="font-weight:bold; font-size:16px;">${bg.name}</div>`;
+                item.appendChild(textDiv);
+
+                // Создаём кнопку отдельно в JavaScript для 100% защиты от багов с кавычками!
+                const shopBtn = document.createElement("button");
+                shopBtn.style.cssText = `background:${btnBg}; border:none; border-radius:8px; color:#fff; font-weight:bold; padding: 8px 16px; cursor:pointer;`;
+                shopBtn.innerText = btnText;
                 
-                // Если язык не русский, принудительно переводим интерфейс на английский
-                if (gameLang !== 'ru') {
-                    translateToEnglish();
-                }
-
-                showInterstitial();
-            }).catch(err => {
-                console.error("Ошибка инициализации SDK:", err);
-            });
-        }
-    }
-
-    // Функция, которая на лету заменит русский текст на английский для зарубежных игроков
-    function translateToEnglish() {
-        try {
-            // Переводим статические надписи
-            // Находим бокс с монетами (строка 135) и заменяем текст перед сном
-            const statBoxes = document.getElementsByClassName("stat-box");
-            if (statBoxes[0]) statBoxes[0].innerHTML = 'COINS: <span id="gold-val">' + document.getElementById("gold-val").innerText + '</span>';
-            if (statBoxes[1]) statBoxes[1].innerHTML = 'LEVEL: <span id="wave-val">' + document.getElementById("wave-val").innerText + '</span>';
-            
-            // Находим плашку рекламы (строка 141)
-            if (document.getElementById("ad-notice")) {
-                document.getElementById("ad-notice").innerText = "ADVERTISING... THE GAME WILL CONTINUE IN A SECOND";
+                // Безопасное вешание клика
+                shopBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    selectOrBuyBg(id);
+                };
+                
+                item.appendChild(shopBtn);
+                item.onclick = () => selectOrBuyBg(id);
+                grid.appendChild(item);
             }
-
-            // Переводим кнопки улучшений по их иерархии (строки 144-154)
-            const btnTitles = document.getElementsByClassName("btn-title");
-            if (btnTitles[0]) btnTitles[0].innerText = "+1 Ball";
-            if (btnTitles[1]) btnTitles[1].innerText = "Power +1";
-            if (btnTitles[2]) btnTitles[2].innerText = "Income x1.2"; // если есть третья кнопка
-
-            // Переводим надпись уровня "Лвл:"
-            const upgCounts = document.querySelectorAll("[id^='upg-'][id$='-lvl']");
-            upgCounts.forEach(el => {
-                el.innerHTML = el.innerHTML.replace("Лвл:", "Lvl:");
-            });
-            
-            console.log("Интерфейс игры успешно переведен на английский язык!");
-        } catch (e) {
-            console.error("Ошибка при переводе интерфейса:", e.message);
         }
-    }
 
-
-    function showInterstitial() {
-        if (ysdk) {
-            document.getElementById('ad-notice').style.display = 'block';
-            ysdk.adv.showFullscreenAdv({
-                callbacks: {
-                    onClose: function(wasShown) {
-                        document.getElementById('ad-notice').style.display = 'none';
-                    },
-                    onError: function(error) {
-                        document.getElementById('ad-notice').style.display = 'none';
+                function selectOrBuyBg(id) {
+            let bg = backgroundsDB[id];
+            if (purchasedBgs.includes(id)) {
+                currentBgId = id;
+                const container = document.getElementById("game-container");
+                                                              if (container) {
+                    // Возвращаем чистые системные настройки
+                    container.style.background = bg.style;
+                    container.style.backgroundImage = bg.dots;
+                    
+                    // Если включена Кибер-Лаборатория, задаем идеальный размер ячеек лазерной сетки
+                    if (id === "bg_cyber") {
+                        container.style.backgroundSize = "35px 35px, 35px 35px, auto";
+                    } else {
+                        container.style.backgroundSize = "auto";
                     }
                 }
-            });
-        }
-    }
 
-    // --- Игровой Движок ---
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const container = document.getElementById('canvas-container');
 
-    let width = 0;
-    let height = 0;
-    function resize() {
-        width = container.clientWidth;
-        height = container.clientHeight;
-        canvas.width = width;
-        canvas.height = height;
-    }
-    window.addEventListener('resize', resize);
-    resize();
+                buildShopGrid();
+            } else {
 
-    let state = {
-        gold: 0,
-        wave: 1,
-        upgrades: {
-            count: 1,
-            power: 1,
-            income: 1
-        }
-    };
-
-    function loadGame() {
-        const saved = localStorage.getItem('neon_vortex_save');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                if (parsed) state = { ...state, ...parsed };
-            } catch(e) { console.log(e); }
-        }
-        updateUI();
-    }
-
-    function saveGame() {
-        localStorage.setItem('neon_vortex_save', JSON.stringify(state));
-    }
-
-    function getBallCount() { return state.upgrades.count + 4; }
-    function getBallPower() { return state.upgrades.power; }
-    function getIncomeMultiplier() { return 1 + (state.upgrades.income - 1) * 0.2; }
-    function getUpgradeCost(type, lvl) {
-        if (type === 'count') return Math.floor(10 * Math.pow(1.5, lvl - 1));
-        if (type === 'power') return Math.floor(15 * Math.pow(1.6, lvl - 1));
-        if (type === 'income') return Math.floor(25 * Math.pow(1.7, lvl - 1));
-        return 100;
-    }
-
-    let balls = [];
-    let blocks = [];
-    let vortexes = [];
-    let particles = [];
-
-    let gameState = 'AIMING';
-    let aimX = 0;
-    let aimY = 0;
-    let isAiming = false;
-
-    const launchOrigin = { x: 0, y: 0 };
-    let ballsToLaunch = 0;
-    let launchTimer = 0;
-    const launchInterval = 4;
-
-    class Ball {
-        constructor(x, y, vx, vy) {
-            this.x = x;
-            this.y = y;
-            this.vx = vx;
-            this.vy = vy;
-            this.radius = 6;
-            this.speed = 7;
-            const len = Math.hypot(this.vx, this.vy);
-            this.vx = (this.vx / len) * this.speed;
-            this.vy = (this.vy / len) * this.speed;
-        }
-
-        update() {
-            vortexes.forEach(v => {
-                const dx = v.x - this.x;
-                const dy = v.y - this.y;
-                const dist = Math.hypot(dx, dy);
-                if (dist < v.radius && dist > 5) {
-                    const force = (1 - dist / v.radius) * 0.4;
-                    this.vx += (dx / dist) * force;
-                    this.vy += (dy / dist) * force;
-                }
-            });
-
-            let currSpeed = Math.hypot(this.vx, this.vy);
-            if (currSpeed < 3) currSpeed = 3;
-            if (currSpeed > 12) currSpeed = 12;
-            this.vx = (this.vx / currSpeed) * currSpeed;
-            this.vy = (this.vy / currSpeed) * currSpeed;
-
-            this.x += this.vx;
-            this.y += this.vy;
-
-            if (this.x - this.radius < 0) { this.x = this.radius; this.vx *= -1; }
-            if (this.x + this.radius > width) { this.x = width - this.radius; this.vx *= -1; }
-            if (this.y - this.radius < 0) { this.y = this.radius; this.vy *= -1; }
-
-            if (this.y > height) {
-                return false;
-            }
-            return true;
-        }
-
-        draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#66fcf1';
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = '#66fcf1';
-            ctx.fill();
-            ctx.shadowBlur = 0;
-        }
-    }
-
-    class Block {
-        constructor(col, row, hp) {
-            this.col = col;
-            this.row = row;
-            this.maxHp = hp;
-            this.hp = hp;
-            this.colsCount = 6;
-            this.padding = 4;
-            this.updateSize();
-        }
-
-        updateSize() {
-            this.w = (width - (this.padding * (this.colsCount + 1))) / this.colsCount;
-            this.h = this.w * 0.8;
-            this.x = this.padding + this.col * (this.w + this.padding);
-            this.y = 80 + this.row * (this.h + this.padding);
-        }
-
-        draw() {
-            if (this.hp <= 0) return;
-            this.updateSize();
-
-            const ratio = Math.min(this.hp / (state.wave * 3), 1);
-            ctx.strokeStyle = `hsl(${180 + ratio * 120}, 100%, 50%)`;
-            ctx.lineWidth = 2;
-            ctx.fillStyle = 'rgba(20, 30, 45, 0.8)';
-            
-            ctx.beginPath();
-            ctx.roundRect(this.x, this.y, this.w, this.h, 4);
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 12px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(this.hp, this.x + this.w / 2, this.y + this.h / 2);
-        }
-
-        checkCollision(ball) {
-            if (this.hp <= 0) return false;
-
-            const closestX = Math.max(this.x, Math.min(ball.x, this.x + this.w));
-            const closestY = Math.max(this.y, Math.min(ball.y, this.y + this.h));
-
-            const distanceX = ball.x - closestX;
-            const distanceY = ball.y - closestY;
-            const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
-
-            if (distanceSquared < (ball.radius * ball.radius)) {
-                const edgeX = ball.x - (this.x + this.w / 2);
-                const edgeY = ball.y - (this.y + this.h / 2);
-                
-                if (Math.abs(edgeX / this.w) > Math.abs(edgeY / this.h)) {
-                    ball.vx = Math.abs(ball.vx) * Math.sign(edgeX);
+                // Если не куплен — проверяем баланс денег
+                if (gold >= bg.price) {
+                    gold -= bg.price;
+                    document.getElementById("gold-val").innerText = gold;
+                    purchasedBgs.push(id);
+                    selectOrBuyBg(id);
+                    alert(`🎉 Локация "${bg.name}" успешно куплена!`);
                 } else {
-                    ball.vy = Math.abs(ball.vy) * Math.sign(edgeY);
+                    alert("🪙 Не хватает монет! Посмотри рекламу внизу экрана, чтобы получить +30 монет бесплатно!");
+                }
+            }
+        }
+        function resetAllProgress() {
+            // Вежливое модальное окно подтверждения, чтобы защитить игрока от случайного клика
+            let confirmReset = confirm("⚠️ ВНИМАНИЕ!\nВы точно хотите полностью обнулить коллекцию, вернуть 100 монет и начать лабораторию с самого начала?");
+            
+            if (confirmReset) {
+                // 1. Возвращаем стартовый баланс золота
+                gold = 100;
+                document.getElementById("gold-val").innerText = gold;
+
+                // 2. Намертво запираем все слаймы обратно, кроме первых четырёх базовых
+                for (let id in slimesDB) {
+                    if (parseInt(id) > 4) {
+                        slimesDB[id].unlocked = false;
+                    } else {
+                        slimesDB[id].unlocked = true;
+                    }
                 }
 
-                const dmg = getBallPower();
-                this.hp -= dmg;
+                // 3. Полностью очищаем игровое поле от летающих амёб
+                activeSlimes = [];
+                if (mixingPair) mixingPair = null;
+                draggedSlime = null;
+
+                // 4. Сбрасываем купленные фоны на базовый
+                purchasedBgs = ["bg_neon"];
+                currentBgId = "bg_neon";
+                const container = document.getElementById("game-container");
+                if (container) {
+                    let bg = backgroundsDB["bg_neon"];
+                    container.style.background = bg.style;
+                    container.style.backgroundImage = bg.dots;
+                    container.style.backgroundSize = "auto";
+                }
+
+                // Перерисовываем коллекцию и закрываем окно, возвращая в чистую игру
+                buildCollectionGrid();
+                document.getElementById("collection-modal").style.display = "none";
+                document.getElementById("ui-top").style.display = "flex";
+
                 
-                const earned = Math.ceil(dmg * getIncomeMultiplier());
-                state.gold += earned;
-                document.getElementById('gold-val').innerText = Math.floor(state.gold);
-
-                createParticles(closestX, closestY, ctx.strokeStyle);
-
-                if (this.hp <= 0) {
-                    state.gold += Math.ceil(this.maxHp * 0.5 * getIncomeMultiplier());
-                    updateUI();
-                    currentCombo++;
-                }
-                return true;
-            }
-            return false;
-        }
-    }
-
-    class Vortex {
-        constructor(x, y) {
-            this.x = x;
-            this.y = y;
-            this.radius = 65;
-            this.angle = 0;
-        }
-        update() {
-            this.angle += 0.05;
-        }
-        draw() {
-            ctx.save();
-            ctx.translate(this.x, this.y);
-            ctx.rotate(this.angle);
-            ctx.strokeStyle = 'rgba(255, 0, 255, 0.4)';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            for (let i = 0; i < 3; i++) {
-                ctx.arc(0, 0, this.radius - i*15, 0, Math.PI * 1.5);
-            }
-            ctx.stroke();
-            ctx.restore();
-        }
-    }
-
-    class Particle {
-        constructor(x, y, color) {
-            this.x = x;
-            this.y = y;
-            this.color = color;
-            this.vx = (Math.random() - 0.5) * 4;
-            this.vy = (Math.random() - 0.5) * 4;
-            this.alpha = 1;
-            this.life = 20 + Math.random() * 15;
-        }
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            this.alpha -= 1 / this.life;
-            return this.alpha > 0;
-        }
-        draw() {
-            ctx.save();
-            ctx.globalAlpha = this.alpha;
-            ctx.fillStyle = this.color;
-            ctx.fillRect(this.x, this.y, 3, 3);
-            ctx.restore();
-        }
-    }
-
-    function createParticles(x, y, color) {
-        for(let i=0; i<4; i++) {
-            particles.push(new Particle(x, y, color));
-        }
-    }
-
-    function spawnWave() {
-        blocks.forEach(b => b.row++);
-        
-        let lose = false;
-        blocks.forEach(b => {
-            if (b.hp > 0 && b.row >= 7) lose = true;
-        });
-
-        if (lose) {
-            alert(`Игра окончена! Вы дошли до ${state.wave} волны.`);
-            state.wave = 1;
-            state.gold = Math.floor(state.gold * 0.5);
-            blocks = [];
-            vortexes = [];
-            saveGame();
-            updateUI();
-            showInterstitial();
-        }
-
-        const hp = state.wave * 3;
-        for (let col = 0; col < 6; col++) {
-            if (Math.random() > 0.4) {
-                blocks.push(new Block(col, 0, hp));
+                alert("🎉 Лаборатория успешно очищена! Начните великую алхимию заново!");
             }
         }
-
-        vortexes = [];
-        if (state.wave > 2) {
-            const count = Math.random() > 0.6 ? 2 : 1;
-            for(let i=0; i<count; i++) {
-                vortexes.push(new Vortex(
-                    50 + Math.random() * (width - 100),
-                    250 + Math.random() * (height - 400)
-                ));
-            }
-        }
-        
-        launchOrigin.x = width / 2;
-        launchOrigin.y = height - 20;
-    }
-
-    function updateUI() {
-        document.getElementById('gold-val').innerText = Math.floor(state.gold);
-        document.getElementById('wave-val').innerText = state.wave;
-
-        const costCount = getUpgradeCost('count', state.upgrades.count);
-        document.getElementById('upg-count-lvl').innerText = `Лвл: ${state.upgrades.count}`;
-        document.getElementById('upg-count-cost').innerText = costCount;
-        toggleBtnStyle('upg-count', state.gold >= costCount);
-
-        const costPower = getUpgradeCost('power', state.upgrades.power);
-        document.getElementById('upg-power-lvl').innerText = `Лвл: ${state.upgrades.power}`;
-        document.getElementById('upg-power-cost').innerText = costPower;
-        toggleBtnStyle('upg-power', state.gold >= costPower);
-
-        const costIncome = getUpgradeCost('income', state.upgrades.income);
-        document.getElementById('upg-income-lvl').innerText = `Лвл: ${state.upgrades.income}`;
-        document.getElementById('upg-income-cost').innerText = costIncome;
-        toggleBtnStyle('upg-income', state.gold >= costIncome);
-    }
-
-    function toggleBtnStyle(id, enabled) {
-        const btn = document.getElementById(id);
-        if (enabled) btn.classList.remove('disabled');
-        else btn.classList.add('disabled');
-    }
-
-    function buyUpgrade(type) {
-        const cost = getUpgradeCost(type, state.upgrades[type]);
-        if (state.gold >= cost) {
-            state.gold -= cost;
-            state.upgrades[type]++;
-            saveGame();
-            updateUI();
-        }
-    }
-
-    function handleStart(clientX, clientY) {
-        if (gameState !== 'AIMING') return;
-        isAiming = true;
-        setAim(clientX, clientY);
-    }
-
-    document.getElementById('canvas-container').addEventListener('mousedown', (e) => {
-        handleStart(e.clientX, e.clientY);
-    });
-
-    document.getElementById('canvas-container').addEventListener('mousemove', (e) => {
-        if (isAiming) setAim(e.clientX, e.clientY);
-    });
-
-    window.addEventListener('mouseup', () => {
-        if (isAiming && gameState === 'AIMING') {
-            isAiming = false;
-            fireBalls();
-        }
-    });
-
-    document.getElementById('canvas-container').addEventListener('touchstart', (e) => {
-        if(e.touches.length > 0) handleStart(e.touches[0].clientX, e.touches[0].clientY);
-    });
-
-    document.getElementById('canvas-container').addEventListener('touchmove', (e) => {
-        if (isAiming && e.touches.length > 0) setAim(e.touches[0].clientX, e.touches[0].clientY);
-    });
-
-    document.getElementById('canvas-container').addEventListener('touchend', () => {
-        if (isAiming && gameState === 'AIMING') {
-            isAiming = false;
-            fireBalls();
-        }
-    });
-
-    function setAim(screenX, screenY) {
-        const rect = canvas.getBoundingClientRect();
-        aimX = screenX - rect.left;
-        aimY = screenY - rect.top;
-        if (aimY > launchOrigin.y - 40) {
-            aimY = launchOrigin.y - 40;
-        }
-    }
-
-    function fireBalls() {
-        gameState = 'FIRING';
-        ballsToLaunch = getBallCount();
-        launchTimer = 0;
-    }
-
-    function loop() {
-        ctx.clearRect(0, 0, width, height);
-
-        vortexes.forEach(v => {
-            v.update();
-            v.draw();
-        });
-
-        if (gameState === 'FIRING' && ballsToLaunch > 0) {
-            launchTimer++;
-            if (launchTimer >= launchInterval) {
-                launchTimer = 0;
-                const vx = aimX - launchOrigin.x;
-                const vy = aimY - launchOrigin.y;
-                balls.push(new Ball(launchOrigin.x, launchOrigin.y, vx, vy));
-                ballsToLaunch--;
-            }
-        }
-
-        balls = balls.filter(ball => {
-            const alive = ball.update();
-            if (alive) {
-                blocks.forEach(block => block.checkCollision(ball));
-                ball.draw();
-            }
-            return alive;
-        });
-
-        blocks = blocks.filter(block => block.hp > 0);
-        blocks.forEach(block => block.draw());
-
-        particles = particles.filter(p => {
-            const alive = p.update();
-            if (alive) p.draw();
-            return alive;
-        });
-
-        if (gameState === 'FIRING' && balls.length === 0 && ballsToLaunch === 0) {
-            gameState = 'CLEANUP';
-                    // --- Фича Комбо-Множитель ---
-        if (currentCombo >= 3) {
-            const comboEl = document.getElementById("combo-text");
-            if (comboEl) {
-                // Подстраиваем текст под язык игрока, который определил Яндекс
-                if (typeof gameLang !== 'undefined' && gameLang !== 'ru') {
-                    if (currentCombo >= 12) comboEl.innerText = "💥 CHAIN BLAST! x" + currentCombo;
-                    else if (currentCombo >= 7) comboEl.innerText = "🔥 MEGA COMBO! x" + currentCombo;
-                    else comboEl.innerText = "✨ GOOD! x" + currentCombo;
-                } else {
-                    if (currentCombo >= 12) comboEl.innerText = "💥 ЦЕПНОЙ ВЗРЫВ! x" + currentCombo;
-                    else if (currentCombo >= 7) comboEl.innerText = "🔥 МЕГА-КОМБО! x" + currentCombo;
-                    else comboEl.innerText = "✨ ХОРОШО! x" + currentCombo;
-                }
-
-                // Эффектно центрируем надпись поверх игрового поля
-                comboEl.style.display = "block";
-                comboEl.style.left = "50%";
-                comboEl.style.top = "40%";
-                comboEl.style.transform = "translate(-50%, -50%) scale(1.2)";
-
-                // Анимированно тушим надпись через 1.2 секунды
-                setTimeout(() => {
-                    comboEl.style.transform = "translate(-50%, -50%) scale(0)";
-                    setTimeout(() => { comboEl.style.display = "none"; }, 200);
-                }, 1200);
-            }
-        }
-        currentCombo = 0; // Сбрасываем счётчик для новой волны
-            state.wave++;
-            saveGame();
-            updateUI();
-            spawnWave();
-            
-            if (state.wave % 3 === 0) {
-                showInterstitial();
-            }
-            
-            gameState = 'AIMING';
-        }
-
-        if (gameState === 'AIMING' && isAiming) {
-            ctx.beginPath();
-            ctx.strokeStyle = 'rgba(102, 252, 241, 0.5)';
-            ctx.lineWidth = 3;
-            ctx.moveTo(launchOrigin.x, launchOrigin.y);
-            ctx.lineTo(aimX, aimY);
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.arc(launchOrigin.x, launchOrigin.y, 8, 0, Math.PI*2);
-            ctx.fillStyle = '#66fcf1';
-            ctx.fill();
-        }
-
-        requestAnimationFrame(loop);
-    }
-
-    loadGame();
-    launchOrigin.x = width / 2;
-    launchOrigin.y = height - 20;
-    spawnWave();
-    initYandexSDK();
-    requestAnimationFrame(loop);
-
-</script>
+    </script>
 </body>
 </html>
